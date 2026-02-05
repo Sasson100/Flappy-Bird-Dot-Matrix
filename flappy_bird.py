@@ -4,9 +4,17 @@ from tm1650 import TM1650
 import time
 from random import randint
 
-display = HT16K33Matrix(I2C(scl=Pin(5), sda=Pin(18)))
+display = HT16K33Matrix(I2C(scl=Pin(18), sda=Pin(5)))
 tm = TM1650(19,21)
 button = Pin(23, Pin.IN, Pin.PULL_UP)
+
+button_pressed = False
+
+def button_irq(pin):
+    global button_pressed
+    button_pressed = True
+
+button.irq(trigger=Pin.IRQ_FALLING, handler=button_irq)
 
 display.set_brightness(2)
 tm.displayDot(2,1)
@@ -30,18 +38,8 @@ def pipe_points():
     ]
 
 def render():
-    """image = [[0 for _ in range(8)] for _ in range(8)]
-    image[bird_height][1] = 1
-    for point in pipe_points():
-        image[point[1]][point[0]] = 1
-    image = [row[::-1] for row in image[::-1]]
-    image = bytes([
-        int("".join(map(str, bits)), 2)
-        for bits in image
-    ])
-    display.set_icon(image).draw()"""
     display._fill(0)
-    points = pipe_points().append((1,bird_height))
+    points = pipe_points() + [(1,bird_height)]
     for point in points:
         display.plot(point[0],point[1])
     display.draw()
@@ -82,9 +80,9 @@ while True:
     if bird_height<0 or (1,bird_height) in pipe_points():
         tm.display(2,[0,0,1,1,1,0,0,0])
         tm.clearBit(1)
-        time.sleep(1)
-        while button.value() == 1:
+        while not button_pressed:
             pass
+        button_pressed = False
         restart()
         continue
 
@@ -96,21 +94,22 @@ while True:
             tm.display(3,[0,1,1,1,0,1,1,1])
             tm.display(2,[0,1,1,0,1,1,0,1])
             tm.display(1,[0,1,1,0,1,1,0,1])
-            time.sleep(1)
-            while button.value() == 1:
+            while not button_pressed:
                 pass
+            button_pressed = False
             restart()
             continue
         tm.ShowNum(points,3)
     
     # Jumping logic
-    end_time = time.time_ns()+2*(10**9)
-    while time.time_ns()<end_time:
-        t = (end_time-time.time_ns())/(10**9)
+    end_time = time.time()+2
+    while time.time()<end_time:
+        t = (end_time-time.time())
         tm.ShowNum(num = int(t%1*10), bit = 1, clear_rest = False)
         tm.ShowNum(num = int(t), bit = 2, clear_rest = False)
         tm.ShowNum(points,3)
-        if button.value() == 0 and 2-t>.25:
+        if button_pressed:
+            button_pressed = False
             bird_jumped = True
             bird_jumped_at = frame_count
             break
