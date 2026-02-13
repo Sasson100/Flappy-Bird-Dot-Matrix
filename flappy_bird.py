@@ -115,5 +115,5 @@ while True:
             bird_jumped_at = frame_count
             break
 
-    if button.value() == 1 and frame_count>bird_jumped_at+1:
+    if frame_count>bird_jumped_at+1:
         bird_jumped = False
