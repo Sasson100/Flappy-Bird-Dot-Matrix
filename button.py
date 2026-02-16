@@ -35,6 +35,7 @@ class Button:
             else:
                 self._released_event = True
 
+    @property
     def is_pressed(self):
         return self._state
 
@@ -50,9 +51,9 @@ class Button:
             return True
         return False
     
-    def held_time(self,in_ms=True):
-        if not self.is_pressed():
+    @property
+    def held_time(self):
+        if not self.is_pressed:
             return 0
         
-        div = 1 if in_ms else 1000
-        return time.ticks_diff(time.ticks_ms(),self._last_change)/div
+        return time.ticks_diff(time.ticks_ms(),self._last_change)
